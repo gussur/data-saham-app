@@ -42,7 +42,14 @@ def download():
 
     # Jika tidak ada data sama sekali
     if not all_data:
-        return "Gagal mengambil data. Pastikan kode saham benar (gunakan .JK untuk Indonesia).", 400
+
+    return """
+    <div style="text-align:center; margin-top:50px; font-family:Arial;">
+        <h3>❌ Gagal mengambil data.</h3>
+        <p>Pastikan kode saham benar dan gunakan akhiran .JK (contoh: BBCA.JK).</p>
+        <a href="/">Kembali ke Home</a>
+    </div>
+    """, 400
 
     # 3. Gabungkan semua data saham menjadi 1 tabel besar
     final_df = pd.concat(all_data, ignore_index=True)
