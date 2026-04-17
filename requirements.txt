@@ -2,3 +2,5 @@ Flask
 pandas
 yfinance
 gunicorn
+gspread
+google-auth
