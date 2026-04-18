@@ -4,24 +4,23 @@ import yfinance as yf
 from io import StringIO
 import gspread
 from google.oauth2.service_account import Credentials
-import os
 
 app = Flask(__name__)
 
 # Fungsi untuk koneksi ke Google Sheets
 def simpan_ke_sheets(df, sheet_name):
     try:
-        # Mengambil file kunci rahasia yang kita taruh di Render tadi
         scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        # Path ini harus sesuai dengan Filename Secret File di Render
         creds = Credentials.from_service_account_file('google-key.json', scopes=scope)
         client = gspread.authorize(creds)
         
-        # Membuka Google Sheets berdasarkan Nama File
         sheet = client.open(sheet_name).sheet1
         
-        # Jika sheet kosong, tulis header-nya
-        if not sheet.get_all_values():
+        # Mengecek apakah sheet benar-benar kosong
+        existing_data = sheet.get_all_values()
+        
+        # Jika kosong (tidak ada data sama sekali), tulis header-nya di baris 1
+        if len(existing_data) == 0:
             sheet.append_row(df.columns.tolist())
             
         # Tambahkan data baru di baris paling bawah
@@ -44,7 +43,8 @@ def download():
     for ticker in tickers:
         try:
             stock = yf.Ticker(ticker)
-            df = stock.history(period="1d") # Ambil data hari terakhir saja untuk dikirim ke Sheets
+            # KITA KEMBALIKAN KE 1 BULAN (1mo)
+            df = stock.history(period="1mo") 
             
             if not df.empty:
                 df.reset_index(inplace=True)
@@ -57,16 +57,20 @@ def download():
             print(f"Gagal ambil {ticker}: {e}")
 
     if not all_data:
-        return '<div style="text-align:center;margin-top:50px;">❌ Data tidak ditemukan. <a href="/">Kembali</a></div>', 400
+        return """
+        <div style="text-align:center;margin-top:50px;font-family:Arial;">
+            <h2>❌ Data tidak ditemukan.</h2>
+            <p>Pastikan kode saham benar dan gunakan akhiran .JK (contoh: BBCA.JK).</p>
+            <a href="/" style="text-decoration:none;color:#007bff;font-weight:bold;">⬅️ Kembali ke Home</a>
+        </div>
+        """, 400
 
     final_df = pd.concat(all_data, ignore_index=True)
 
-    # --- BAGIAN KIRIM KE GOOGLE SHEETS ---
-    # GANTI 'Data Saham Saya' dengan nama file Google Sheets kamu!
+    # --- NAMA SHEET SESUAI SCREENSHOT ---
     sukses_sheets = simpan_ke_sheets(final_df, 'data saham')
     # -------------------------------------
 
-    # Tetap berikan opsi download CSV sebagai backup
     output = StringIO()
     final_df.to_csv(output, index=False)
     
